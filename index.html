@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FarmTwin — Smarter Farms. Less Water.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e17; --bg2:#0d1220; --panel:#111826; --panel2:#0d1421; --line:#1e2838;
+  --ink:#eef2f8; --mute:#8a97ab; --mute2:#5c6a7f;
+  --green:#22c55e; --green-d:#0f2e1f; --water:#38bdf8; --water-d:#0c2a3a;
+  --dry:#f0b429; --alert:#f0554a; --alert-d:#3a1a17; --violet:#8b7bf7;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Inter","Noto Sans Tamil",sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;line-height:1.15;font-weight:700}
+a{color:inherit}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+/* ---------- sidebar ---------- */
+.sidebar{background:var(--panel2);border-right:1px solid var(--line);padding:20px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:10px;padding:0 8px 20px}
+.brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--green),#0ea86f);display:flex;align-items:center;justify-content:center;font-size:18px}
+.brand b{font-size:16px}
+.brand span{display:block;font-size:11px;color:var(--mute)}
+.nav{display:flex;flex-direction:column;gap:2px;flex:1}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;color:var(--mute);text-decoration:none;font-size:13px;font-weight:500;cursor:pointer}
+.nav a:hover{background:#161f30;color:var(--ink)}
+.nav a.active{background:var(--green-d);color:var(--green);border:1px solid #1c5c3a}
+.nav a .ico{width:18px;text-align:center}
+.sidebar-foot{background:linear-gradient(160deg,#0f2e1f,#0a1a14);border-radius:12px;padding:16px;margin-top:12px;font-size:12px;color:#9fd8b8}
+.sidebar-foot b{display:block;font-size:13px;color:#d8f5e4;margin-bottom:4px}
+/* ---------- top header ---------- */
+.topbar{display:flex;align-items:center;gap:16px;padding:16px 28px;border-bottom:1px solid var(--line);background:var(--bg2)}
+.status-pill{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:8px 16px;font-size:13px;color:#cfe9d8}
+.status-pill .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+.topbar .spacer{flex:1}
+.hchip{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mute)}
+.hchip b{color:var(--ink);font-size:14px}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--violet),#5a4bd6);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+/* ---------- layout ---------- */
+.content{padding:24px 28px 60px}
+.section-title{font-size:22px;margin:34px 0 14px}
+.section-title:first-child{margin-top:0}
+.dash-grid{display:grid;grid-template-columns:1fr 320px;gap:18px;align-items:start}
+.main-col,.side-col{display:flex;flex-direction:column;gap:18px}
+.row{display:flex;gap:18px;align-items:stretch}
+.row>*{flex:1;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h3{font-size:15px;margin-bottom:2px}
+.muted{color:var(--mute)}
+.small{font-size:12px}
+/* greeting */
+.greet h1{font-size:26px}
+.greet p{color:var(--mute);margin-top:6px;font-size:13px}
+/* AI recommendation */
+.reco{background:linear-gradient(120deg,#0f2e22,#0c1c2a);border:1px solid #17402c;display:flex;align-items:center;gap:18px}
+.reco .ricon{width:44px;height:44px;border-radius:12px;background:#123324;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.reco .rtag{font-size:11px;letter-spacing:.06em;color:#7fd9a6;font-weight:700}
+.reco h2{font-size:19px;margin:4px 0 6px}
+.reco p{color:#b7c8bf;font-size:13px;margin:0}
+.reco .rconf{text-align:center;flex-shrink:0}
+.reco .rconf .num{font-size:22px;font-weight:800;color:var(--green)}
+.reco .rconf .lab{font-size:11px;color:var(--mute)}
+.reco a.btn{display:inline-block;margin-top:8px;font-size:12px;color:var(--green);text-decoration:none;font-weight:600}
+/* digital farm map */
+.map-head{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.map-head .live{font-size:11px;color:var(--green);display:flex;align-items:center;gap:4px}
+.map-wrap{display:flex;gap:14px}
+.farmmap-shell{position:relative;flex:1;border-radius:12px;border:1px solid var(--line);overflow:hidden;min-height:280px;
+  background:
+    radial-gradient(circle at 15% 20%,rgba(255,255,255,.05),transparent 40%),
+    radial-gradient(circle at 85% 75%,rgba(255,255,255,.04),transparent 45%),
+    repeating-linear-gradient(115deg,rgba(255,255,255,.025) 0 2px,transparent 2px 14px),
+    linear-gradient(160deg,#122e1c 0%,#0c2417 45%,#0a1c12 100%)}
+.farmmap-shell::after{content:"";position:absolute;left:8%;top:0;bottom:0;width:3%;
+  background:linear-gradient(180deg,rgba(56,189,248,.5),rgba(14,168,201,.35));
+  transform:skewX(-8deg);filter:blur(1px);opacity:.7;pointer-events:none}
+.farmmap{position:relative;z-index:1;height:100%;box-sizing:border-box;padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.map-tools{position:absolute;top:12px;left:12px;display:flex;flex-direction:column;gap:6px;z-index:2}
+.map-tools span{width:26px;height:26px;border-radius:7px;background:rgba(10,16,10,.65);border:1px solid rgba(255,255,255,.15);
+  color:#dff5e6;display:flex;align-items:center;justify-content:center;font-size:14px;backdrop-filter:blur(2px)}
+.map-compass{position:absolute;bottom:12px;right:14px;color:#bfe6c8;font-size:11px;text-align:center;opacity:.8;z-index:2}
+.zone-tile{position:relative;z-index:1;border-radius:12px;cursor:pointer;border:1.5px solid rgba(255,255,255,.08);
+  background:rgba(34,197,94,.22);backdrop-filter:blur(1px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px;
+  transition:transform .15s,box-shadow .15s}
+.zone-tile:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.zone-tile.low{background:rgba(240,180,41,.26);border-color:rgba(240,180,41,.4)}
+.zone-tile.crit{background:rgba(240,85,74,.28);border-color:rgba(240,85,74,.45)}
+.zone-tile.sel{border-color:var(--green);box-shadow:0 0 0 2px rgba(34,197,94,.3)}
+.zone-tile .zi{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.28);display:flex;align-items:center;justify-content:center;font-size:14px}
+.zone-tile b{font-size:12px;font-weight:700;letter-spacing:.02em;color:#eefaf0}
+.zone-tile .pv{font-size:26px;font-weight:800;margin-top:2px;color:#eefaf0}
+.zone-tile.low .pv{color:#3a2c0d;color:var(--dry)}
+.zone-tile.crit .pv{color:var(--alert)}
+.layers{width:140px;flex-shrink:0;font-size:12px}
+.layers .lrow{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line);color:var(--mute)}
+.sw{width:30px;height:16px;border-radius:9px;background:#222c3c;position:relative;cursor:pointer;flex-shrink:0}
+.sw.on{background:#0f2e1f}
+.sw i{position:absolute;top:2px;left:2px;width:12px;height:12px;border-radius:50%;background:#666;transition:.15s}
+.sw.on i{left:16px;background:var(--green)}
+/* zone details */
+.zd-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.zd-top select{background:#0f1524;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:5px 8px;font-size:12px}
+.zd-thumb{height:70px;border-radius:10px;background:linear-gradient(135deg,#1c4d2e,#0e2818);margin-bottom:10px;display:flex;align-items:end;padding:8px;font-size:11px;color:#bfe6c8}
+.bar{height:6px;border-radius:4px;background:#1a2334;overflow:hidden;margin:6px 0 10px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--water),#0ea8c9)}
+.kv{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-top:1px dashed var(--line)}
+.kv b{font-weight:600}
+.zd-edit{display:flex;gap:6px;margin-top:10px}
+.zd-edit select,.zd-edit input{flex:1;background:#0f1524;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:5px 6px;font-size:11px}
+/* health score */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center}
+.gauge{position:relative;width:150px;height:150px}
+.gauge .gnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.gauge .gnum b{font-size:34px}
+.gauge .gnum span{font-size:11px;color:var(--mute)}
+.gauge .glabel{margin-top:4px;color:var(--green);font-weight:700;font-size:13px}
+.hs-rows{width:100%;margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.hs-row{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+.hs-row .l{display:flex;align-items:center;gap:6px;color:var(--mute)}
+/* weather */
+.wx-now{display:flex;align-items:center;gap:14px}
+.wx-now .t{font-size:30px;font-weight:800}
+.wx-rain{background:#0d1a22;border-radius:10px;padding:8px 10px;text-align:right}
+.wx-rain b{color:var(--water);font-size:16px}
+.wx-days{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:14px}
+.wx-days div{background:#0d1421;border:1px solid var(--line);border-radius:8px;padding:8px 4px;text-align:center;font-size:11px}
+.wx-days .ic{font-size:16px;margin:3px 0}
+/* agent network */
+.agent-chain{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:10px 0}
+.agent-node{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;text-align:center}
+.agent-node .circ{width:52px;height:52px;border-radius:50%;border:2px solid #1c5c3a;background:#0d1f16;display:flex;align-items:center;justify-content:center;font-size:20px}
+.agent-node.final .circ{border-color:var(--green);box-shadow:0 0 14px rgba(34,197,94,.5)}
+.agent-node b{font-size:12px}
+.agent-node .av{font-size:11px;color:var(--green)}
+.agent-link{flex-shrink:0;width:26px;height:2px;background:linear-gradient(90deg,#1c5c3a,#1c5c3a);margin-top:-24px}
+.agent-status{font-size:11px;color:var(--green);text-align:right;margin-bottom:-4px}
+/* simulation lab */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tab{background:#0f1524;border:1px solid var(--line);color:var(--mute);border-radius:8px;padding:7px 11px;font-size:12px;cursor:pointer}
+.tab.active{background:var(--green-d);border-color:#1c5c3a;color:var(--green)}
+.impact-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.impact-cell{background:#0d1421;border:1px solid var(--line);border-radius:10px;padding:10px}
+.impact-cell .l{font-size:11px;color:var(--mute);display:block;margin-bottom:4px}
+.impact-cell b{font-size:14px}
+.simfields{display:flex;gap:8px;margin-bottom:12px}
+.simfields label{flex:1;font-size:11px;color:var(--mute);display:flex;flex-direction:column;gap:3px}
+.simfields input{background:#0f1524;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:6px 8px;font-size:12px}
+.runbtn{width:100%;padding:12px;border:0;border-radius:10px;background:linear-gradient(90deg,var(--green),#0ea86f);color:#04150c;font-weight:700;font-size:13px;cursor:pointer}
+/* resource impact */
+.ri-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ri-cell{background:#0d1421;border:1px solid var(--line);border-radius:10px;padding:12px}
+.ri-cell .ic{font-size:16px;margin-bottom:6px}
+.ri-cell b{font-size:18px;display:block}
+.ri-cell .l{font-size:11px;color:var(--mute)}
+.ri-cell .sub{font-size:10px;color:var(--mute2)}
+/* timeline */
+.tl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+.tl li{display:flex;gap:10px;font-size:12px}
+.tl .dot{width:9px;height:9px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.tl .txt b{display:block;font-size:12.5px}
+.tl .txt span{color:var(--mute);font-size:11px}
+/* what this does */
+.wd-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.wd-col{border-radius:10px;padding:12px}
+.wd-col.ok{background:var(--green-d);border:1px solid #1c5c3a}
+.wd-col.no{background:var(--alert-d);border:1px solid #5c2b26}
+.wd-col b{display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:8px}
+.wd-col ul{margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:12px;color:#c7d3cd}
+/* data sources */
+.ds-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+.ds-row:last-child{border:0}
+.ds-row .ic{width:32px;height:32px;border-radius:8px;background:#0f1524;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.ds-row .nm{flex:1;min-width:0}
+.ds-row .nm b{font-size:12.5px;display:block}
+.ds-row .nm span{font-size:11px;color:var(--mute)}
+.badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:#0f2e1f;color:var(--green);white-space:nowrap}
+.badge.off{background:#1a2130;color:var(--mute)}
+/* generic form bits reused from original app */
+textarea,input[type=text],input[type=number],select{font:inherit}
+.ghostbtn{background:#0f1524;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:9px 13px;font-size:12px;cursor:pointer}
+.primarybtn{background:var(--green);border:0;color:#04150c;font-weight:700;border-radius:8px;padding:9px 15px;font-size:12px;cursor:pointer}
+.ans-box{white-space:pre-wrap;background:#0d1421;border:1px solid var(--line);border-radius:8px;padding:12px;margin-top:10px;min-height:44px;font-size:13px}
+.trace{font-size:12px;color:var(--mute);margin:8px 0 0;padding-left:18px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
+tr.best td{font-weight:700;background:rgba(34,197,94,.08)}
+.Low{color:var(--green)}.Medium{color:var(--dry)}.High{color:var(--alert)}
+ol.plan{margin:0;padding-left:20px}
+.bigL{font-size:30px;font-weight:800;color:var(--water)}
+@media(max-width:1000px){.dash-grid{grid-template-columns:1fr}.app{grid-template-columns:1fr}.sidebar{display:none}}
+.location-box{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}.location-box input{width:100%;box-sizing:border-box;background:#0d1421;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:9px 10px;font-size:12px}.location-actions{display:flex;gap:8px;flex-wrap:wrap}.location-status{grid-column:1/-1;font-size:11px;color:var(--mute);line-height:1.4}.api-status{font-size:11px;margin-top:8px}.oktxt{color:var(--green)}.errtxt{color:var(--alert)}@media(max-width:650px){.location-box{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">🌿</div><div><b>FarmTwin</b><span>Smarter Farms. Less Water.</span></div></div>
+    <nav class="nav" id="nav">
+      <a data-t="#dashboard" class="active"><span class="ico">🏠</span>Dashboard</a>
+      <a data-t="#digital-farm"><span class="ico">🗺️</span>Digital Farm</a>
+      <a data-t="#ai-decision"><span class="ico">⚙️</span>AI Decision Engine</a>
+      <a data-t="#agent-network"><span class="ico">🧠</span>AI Agent Network</a>
+      <a data-t="#simulation-lab"><span class="ico">📈</span>Simulation Lab</a>
+      <a data-t="#timeline"><span class="ico">🕒</span>Farm Timeline</a>
+      <a data-t="#resource-impact"><span class="ico">📊</span>Resource Impact</a>
+      <a data-t="#vision-ai"><span class="ico">📷</span>Vision AI</a>
+      <a data-t="#reports"><span class="ico">📄</span>Reports</a>
+    </nav>
+    <div class="sidebar-foot"><b>🌱 Sustainable Farming</b>for a Brighter Future</div>
+  </aside>
+
+  <div>
+    <div class="topbar">
+      <div class="status-pill"><span class="dot"></span><span id="statusMsg">Your farm is looking good today.</span></div>
+      <div class="spacer"></div>
+      <div class="hchip" id="wxChip">☀️ <b id="wxTemp">--°C</b></div>
+      <div class="hchip">📍 <span id="locTxt">Farm location</span></div>
+      <div class="hchip" id="clockTxt"></div>
+      <div class="avatar">FT</div>
+    </div>
+
+    <div class="content">
+      <div id="dashboard"></div>
+      <div class="dash-grid">
+        <div class="main-col">
+
+          <div class="row">
+            <div class="greet">
+              <h1 id="greetTxt">Good Morning</h1>
+              <p>Here's what's happening on your farm today.</p>
+            </div>
+            <div class="card reco" style="flex:2">
+              <div class="ricon">🤖</div>
+              <div style="flex:1">
+                <div class="rtag">AI RECOMMENDATION</div>
+                <h2 id="recoTitle">Run a simulation to get a recommendation</h2>
+                <p id="recoBody">Press "Run Simulation" below to fetch live weather and generate a plan.</p>
+                <a class="btn" data-t="#reports">View reasoning →</a>
+              </div>
+              <div class="rconf"><div class="num" id="recoConf">--%</div><div class="lab">Confidence</div></div>
+            </div>
+          </div>
+
+          <div class="row" id="digital-farm">
+            <div class="card" style="flex:2">
+              <div class="map-head"><h3>Digital Farm</h3><span class="live">● Live Field View</span></div>
+              <div class="map-wrap">
+                <div class="farmmap-shell">
+                  <div class="map-tools"><span>+</span><span>−</span><span>▤</span></div>
+                  <div class="farmmap" id="farmMap"></div>
+                  <div class="map-compass">✛<br>N</div>
+                </div>
+                <div class="layers">
+                  <div class="lrow">Soil Moisture<div class="sw on" id="lyMoist"><i></i></div></div>
+                  <div class="lrow">Crop Health<div class="sw on" id="lyCrop"><i></i></div></div>
+                  <div class="lrow">NDVI<div class="sw" id="lyNdvi"><i></i></div></div>
+                  <div class="lrow">Temperature<div class="sw" id="lyTemp"><i></i></div></div>
+                  <div class="lrow">Rainfall<div class="sw" id="lyRain"><i></i></div></div>
+                </div>
+              </div>
+            </div>
+            <div class="card" style="flex:1"><h3 style="margin-bottom:10px">Zone Details</h3><div id="zdWrap"></div></div>
+          </div>
+
+          <div class="row" id="agent-network">
+            <div class="card" style="flex:2">
+              <div class="agent-status" id="agentStatus">● checking agents…</div>
+              <h3>AI Agent Network</h3>
+              <div class="agent-chain" id="agentChain"></div>
+            </div>
+            <div class="card" id="simulation-lab" style="flex:1.4">
+              <h3 style="margin-bottom:12px">Simulation Lab</h3>
+              <div class="tabs" id="simTabs">
+                <div class="tab" data-x='{"no_rain_days":5}'>No rain for 5 days</div>
+                <div class="tab" data-x='{"rain_scale_mult":1.4}'>+40% Rain</div>
+                <div class="tab" data-x='{"temp_delta":3}'>+3°C Temp</div>
+                <div class="tab" data-x='{"water_scale":0.8}'>-20% Water</div>
+              </div>
+              <div class="simfields">
+                <label>Water available (L)<input id="water" type="number" value="8000" min="0"></label>
+                <label>Budget (Rs)<input id="budget" type="number" value="2000" min="0"></label>
+              </div>
+              <div class="card" style="padding:12px;margin-top:10px;background:#0b111d">
+                <h4 style="margin:0 0 8px">📍 Farm Location</h4>
+                <div class="location-box">
+                  <input id="districtInput" type="text" placeholder="District (e.g. Salem)">
+                  <input id="stateInput" type="text" placeholder="State (e.g. Tamil Nadu)">
+                  <div class="location-actions">
+                    <button class="ghostbtn" id="useLocation" type="button">📍 Use my location</button>
+                    <button class="ghostbtn" id="setDistrict" type="button">🔎 Set district</button>
+                  </div>
+                  <div class="location-status" id="locationStatus">Choose your location or enter a district. You can change it anytime.</div>
+                </div>
+              </div>
+              <div class="api-status" id="apiStatus"></div>
+              <div class="impact-grid" id="impactGrid">
+                <div class="impact-cell"><span class="l">💧 Water required</span><b id="impWater">--</b></div>
+                <div class="impact-cell"><span class="l">⚠️ Crop stress</span><b id="impStress">--</b></div>
+                <div class="impact-cell"><span class="l">📉 Yield risk</span><b id="impYield">--</b></div>
+              </div>
+              <button class="runbtn" id="run">Run Simulation</button>
+            </div>
+          </div>
+
+          <div class="row" id="timeline">
+            <div class="card" style="flex:1.2">
+              <h3 style="margin-bottom:14px">Farm Timeline</h3>
+              <ul class="tl" id="tl"></ul>
+            </div>
+            <div class="card">
+              <h3 style="margin-bottom:12px">What This Does (and Doesn't)</h3>
+              <div class="wd-grid">
+                <div class="wd-col ok"><b>✅ What it does</b><ul>
+                  <li>Uses satellite, weather and soil data</li>
+                  <li>Predicts crop stress and water needs</li>
+                  <li>Recommends irrigation and farm actions</li>
+                  <li>Learns and improves over time via feedback</li>
+                </ul></div>
+                <div class="wd-col no"><b>❌ What it doesn't do</b><ul>
+                  <li>Control your irrigation system</li>
+                  <li>Guarantee crop yield</li>
+                  <li>Replace human judgement</li>
+                  <li>Work without internet</li>
+                </ul></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="side-col">
+          <div class="card gauge-wrap">
+            <h3 style="align-self:flex-start;margin-bottom:10px">Farm Health Score</h3>
+            <div class="gauge"><svg viewBox="0 0 150 150" width="150" height="150">
+              <circle cx="75" cy="75" r="62" fill="none" stroke="#1a2334" stroke-width="14"/>
+              <circle id="hsArc" cx="75" cy="75" r="62" fill="none" stroke="#22c55e" stroke-width="14" stroke-linecap="round" stroke-dasharray="389.6" stroke-dashoffset="389.6" transform="rotate(-90 75 75)"/>
+            </svg><div class="gnum"><b id="hsNum">--</b><span>/100</span></div></div>
+            <div class="glabel" id="hsLabel">—</div>
+            <div class="hs-rows">
+              <div class="hs-row"><span class="l">🌱 Soil</span><b id="hsSoil">--%</b></div>
+              <div class="hs-row"><span class="l">🌾 Crop</span><b id="hsCrop">--%</b></div>
+              <div class="hs-row"><span class="l">💧 Water</span><b id="hsWater">--%</b></div>
+              <div class="hs-row"><span class="l">☀️ Weather</span><b id="hsWx">--%</b></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="margin-bottom:10px">Weather &amp; Forecast</h3>
+            <div class="wx-now">
+              <div style="font-size:30px" id="wxIcon">☁️</div>
+              <div class="t" id="wxTempBig">--°</div>
+              <div class="wx-rain"><span class="muted small">Rain Probability</span><br><b id="wxProb">--%</b><br><span class="small muted" id="wxMm">-- mm</span></div>
+            </div>
+            <div class="wx-days" id="wxDays"></div>
+          </div>
+
+          <div class="card" id="resource-impact">
+            <h3 style="margin-bottom:10px">Resource Impact</h3>
+            <div class="ri-grid">
+              <div class="ri-cell"><div class="ic">💧</div><b id="riWater">-- L</b><div class="l">Water Saved</div><div class="sub">vs irrigating everything</div></div>
+              <div class="ri-cell"><div class="ic">🪙</div><b id="riCost">₹--</b><div class="l">Est. Cost Saved</div><div class="sub">pumping cost avoided</div></div>
+              <div class="ri-cell"><div class="ic">🌍</div><b id="riCarbon">-- kg</b><div class="l">Carbon Footprint Avoided</div><div class="sub">estimated, CO₂e</div></div>
+              <div class="ri-cell"><div class="ic">🎯</div><b id="riSdg">--</b><div class="l">Sustainable Impact</div><div class="sub">UN SDG goals</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="margin-bottom:6px">Recent Data Sources</h3>
+            <div id="dsCards"></div>
+          </div>
+        </div>
+      </div>
+
+      <h2 class="section-title" id="ai-decision-h">AI Decision Engine — Ask FarmTwin</h2>
+      <div class="card">
+        <div class="row" style="margin-top:0;align-items:center">
+          <button id="mic" class="ghostbtn" type="button" style="flex:0">🎤 Speak</button>
+          <span class="muted small" id="langBadge">Auto language: detecting…</span>
+          <button id="mute" class="ghostbtn" type="button" aria-pressed="false" style="flex:0">🔈 Read answers aloud</button>
+        </div>
+        <textarea id="q" rows="2" style="width:100%;margin-top:10px;background:#0f1524;border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:10px" placeholder="Type in any language, or tap Speak — e.g. what if rainfall is 30% lower?"></textarea>
+        <div class="row" style="margin-top:10px"><button id="ask" class="primarybtn">Ask</button></div>
+        <div class="ans-box" id="ans" aria-live="polite"></div>
+        <ul class="trace" id="trace"></ul>
+      </div>
+
+      <h2 class="section-title" id="vision-ai">Vision AI — Crop Photo Check</h2>
+      <div class="card">
+        <p class="muted small">The vision agent reads the photo together with recent humidity and rain forecast.</p>
+        <input id="img" type="file" accept="image/*" capture="environment">
+        <div class="ans-box" id="vis" aria-live="polite"></div>
+      </div>
+
+      <h2 class="section-title" id="reports">Reports</h2>
+      <div class="row">
+        <div class="card">
+          <h3 style="margin-bottom:10px">Decision detail</h3>
+          <div id="dec" class="muted small">Press "Run Simulation".</div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:10px">Agent findings</h3>
+          <div id="agentsTable"></div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="card">
+          <h3 style="margin-bottom:10px">Scenarios</h3>
+          <table><thead><tr><th>Scenario</th><th>Water</th><th>Cost</th><th>Crop risk</th></tr></thead><tbody id="sc"><tr><td colspan="4" class="muted">Press "Run Simulation".</td></tr></tbody></table>
+          <h3 style="margin:16px 0 8px">Action plan</h3>
+          <ol class="plan" id="plan"></ol>
+          <h3 style="margin:16px 0 8px">Water saved</h3>
+          <div class="bigL" id="saved">0 L</div>
+          <p class="muted small" id="shortfall"></p>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:10px">SDG impact for this plan</h3>
+          <table><tbody id="sdg"></tbody></table>
+          <p class="muted small" id="mkt" style="margin-top:10px"></p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="card">
+          <h3 style="margin-bottom:10px">Data sources — full detail</h3>
+          <table><thead><tr><th>Source</th><th>Status</th><th>Official</th></tr></thead><tbody id="ds"></tbody></table>
+          <p class="muted small" style="margin-top:8px">LIVE = fetched now. CACHED = last good fetch. SIMULATED = demo values, never real data.</p>
+          <p class="muted small" id="src"></p>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:10px">Log what happened</h3>
+          <p class="muted small">The forecast is compared with reality and future rain estimates are recalibrated.</p>
+          <div class="row" style="margin-top:8px">
+            <label class="muted small" style="display:flex;flex-direction:column;gap:4px">Crop condition
+              <select id="cond" style="background:#0f1524;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:6px"><option>Same</option><option>Improved</option><option>Worse</option></select>
+            </label>
+            <label class="muted small" style="display:flex;flex-direction:column;gap:4px">Actual rain (mm)
+              <input id="act" type="number" min="0" value="0" style="background:#0f1524;border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:6px">
+            </label>
+          </div>
+          <div class="row" style="margin-top:10px"><button id="fb" class="ghostbtn">Save</button><span class="muted small" id="fbOut" style="align-self:center"></span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const THR={paddy:55,groundnut:35,tomato:45,millet:30};
+let zones=[{name:"Zone A",crop:"paddy",area:30,moisture:72},{name:"Zone B",crop:"paddy",area:30,moisture:43},{name:"Zone C",crop:"paddy",area:30,moisture:65},{name:"Zone D",crop:"paddy",area:30,moisture:58}];
+let wx=null, lastRes=null, selZone=0, activePreset=null;
+
+async function api(p,b){const r=await fetch("/api/"+p,b?{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)}:{});if(!r.ok)throw new Error(await r.text());return r.json()}
+
+// ---------- nav scroll ----------
+document.querySelectorAll("#nav a").forEach(a=>a.onclick=()=>{
+  document.querySelectorAll("#nav a").forEach(x=>x.classList.remove("active"));
+  a.classList.add("active");
+  const t=document.querySelector(a.dataset.t);
+  if(t)t.scrollIntoView({behavior:"smooth",block:"start"});
+});
+document.querySelectorAll("a.btn[data-t]").forEach(a=>a.onclick=()=>document.querySelector(a.dataset.t)?.scrollIntoView({behavior:"smooth"}));
+
+// ---------- clock ----------
+function tickClock(){$("#clockTxt").textContent=new Date().toLocaleString(undefined,{weekday:"short",hour:"2-digit",minute:"2-digit"})}
+tickClock(); setInterval(tickClock,30000);
+const hr=new Date().getHours();
+$("#greetTxt").textContent = hr<12?"Good Morning":hr<17?"Good Afternoon":"Good Evening";
+
+// ---------- layer toggles (visual) ----------
+document.querySelectorAll(".sw").forEach(s=>s.onclick=()=>s.classList.toggle("on"));
+
+// ---------- farm() payload builder ----------
+let farmLocation=JSON.parse(localStorage.getItem("farmtwin_location")||"null");
+const farm=(x={})=>{
+  const waterInput=Number($("#water").value||0);
+  const budgetInput=Number($("#budget").value||0);
+  let rainScale=1, noRain=0, tempDelta=0, waterScale=1;
+  const preset=x.preset||{};
+  if(preset.no_rain_days)noRain=preset.no_rain_days;
+  if(preset.rain_scale_mult)rainScale=preset.rain_scale_mult;
+  if(preset.temp_delta)tempDelta=preset.temp_delta;
+  if(preset.water_scale)waterScale=preset.water_scale;
+  return {zones, water_l:waterInput*waterScale, budget:budgetInput, rain_scale:rainScale, no_rain_days:noRain, temp_delta:tempDelta,
+          latitude:farmLocation?.lat??null, longitude:farmLocation?.lon??null,
+          district:farmLocation?.district||"", state:farmLocation?.state||"", location_label:farmLocation?.label||""};
+};
+
+// ---------- Digital Farm map ----------
+function drawZones(){
+  $("#farmMap").innerHTML=zones.map((z,i)=>{
+    const gap=THR[z.crop]-z.moisture;
+    const cls=gap>15?"crit":gap>0?"low":"";
+    const icon=gap>15?"⚠️":gap>0?"⚠️":"🍃";
+    return `<div class="zone-tile ${cls} ${i==selZone?'sel':''}" data-i="${i}"><div class="zi">${icon}</div><b>${z.name}</b><div class="pv">${Math.round(z.moisture)}%</div></div>`;
+  }).join("");
+  $("#farmMap").querySelectorAll(".zone-tile").forEach(t=>t.onclick=()=>{selZone=+t.dataset.i;drawZones();renderZoneDetails();});
+}
+function zoneStress(z){
+  const gap=THR[z.crop]-z.moisture;
+  return gap>15?"High":gap>0?"Moderate":"Low";
+}
+function renderZoneDetails(){
+  const z=zones[selZone];
+  const rec = lastRes?.day0?.find?.(d=>d.zone===z.name);
+  const recLiters = rec ? rec.liters+" L" : (lastRes?.scenarios?.find(s=>s.key==="smart")?.zone_totals?.[z.name] ?? "—");
+  document.getElementById("zdBox")?.remove();
+  $(".farmmap").parentElement.parentElement; // no-op keep layout ref
+  const stress=zoneStress(z);
+  const stressColor=stress=="High"?"var(--alert)":stress=="Moderate"?"var(--dry)":"var(--green)";
+  $("#zdWrap").innerHTML=`
+    <div class="zd-top"><b>${z.name}</b>
+      <select id="zoneSelect">${zones.map((zz,i)=>`<option value="${i}" ${i==selZone?'selected':''}>${zz.name}</option>`).join("")}</select>
+    </div>
+    <div class="zd-thumb">${z.crop} • ${z.area} m²</div>
+    <div style="font-size:13px;margin-bottom:2px"><b style="font-size:20px">${Math.round(z.moisture)}%</b> Soil Moisture</div>
+    <div class="bar"><i style="width:${z.moisture}%"></i></div>
+    <div class="kv"><span class="muted">Crop Stress</span><b style="color:${stressColor}">${stress}</b></div>
+    <div class="kv"><span class="muted">Recommended</span><b>${recLiters}</b></div>
+    <div class="kv"><span class="muted">Rain Forecast</span><b>${wx?wx.days[0].prob+'% (tomorrow)':'—'}</b></div>
+    <div class="zd-edit">
+      <select id="zCrop">${Object.keys(THR).map(c=>`<option ${c==z.crop?'selected':''}>${c}</option>`).join("")}</select>
+      <input id="zMoisture" type="number" min="0" max="100" value="${Math.round(z.moisture)}" title="Moisture %">
+      <input id="zArea" type="number" min="1" value="${z.area}" title="Area m²">
+    </div>`;
+  $("#zoneSelect").onchange=e=>{selZone=+e.target.value;drawZones();renderZoneDetails();};
+  $("#zCrop").onchange=e=>{zones[selZone].crop=e.target.value;drawZones();renderZoneDetails();};
+  $("#zMoisture").onchange=e=>{zones[selZone].moisture=+e.target.value;drawZones();renderZoneDetails();};
+  $("#zArea").onchange=e=>{zones[selZone].area=+e.target.value;renderZoneDetails();};
+}
+
+// ---------- SDG table ----------
+const sdgRows=r=>$("#sdg").innerHTML=(r.sdg||[]).map(x=>`<tr><td><b>${x.goal}</b></td><td>${x.value}<br><span class="muted small">${x.target}</span></td></tr>`).join("");
+
+// ---------- Farm Health Score ----------
+function renderHealth(r){
+  const s=r.scenarios.find(x=>x.key==="smart");
+  const soil=Math.round(zones.reduce((a,z)=>a+z.moisture,0)/zones.length);
+  const crop=Math.max(30,Math.min(100,100-s.stress_days*10));
+  const water=r.cap_l>0?Math.max(0,Math.min(100,Math.round(100-((r.shortfall_l||0)/r.cap_l*100)))):70;
+  const wxScore = r.weather.status==="LIVE" ? Math.round(100-r.weather.days[0].prob*0.35) : r.weather.status==="CACHED" ? 62 : 45;
+  const overall=Math.round((soil+crop+water+wxScore)/4);
+  $("#hsSoil").textContent=soil+"%"; $("#hsCrop").textContent=crop+"%"; $("#hsWater").textContent=water+"%"; $("#hsWx").textContent=wxScore+"%";
+  $("#hsNum").textContent=overall;
+  $("#hsLabel").textContent = overall>=80?"Healthy":overall>=60?"Fair":"Needs attention";
+  const C=2*Math.PI*62;
+  $("#hsArc").setAttribute("stroke-dasharray",C.toFixed(1));
+  $("#hsArc").setAttribute("stroke-dashoffset",(C*(1-overall/100)).toFixed(1));
+  $("#hsArc").setAttribute("stroke", overall>=80?"#22c55e":overall>=60?"#f0b429":"#f0554a");
+}
+
+// ---------- Weather & Forecast ----------
+const ICONS=(mm,prob)=> mm>8||prob>65?"🌧️":mm>1||prob>35?"🌦️":prob>15?"⛅":"☀️";
+function renderWeather(r){
+  wx=r.weather;
+  const d0=wx.days[0];
+  $("#wxTemp").textContent=Math.round(d0.tmax)+"°C";
+  $("#wxTempBig").textContent=Math.round(d0.tmax)+"°";
+  $("#wxIcon").textContent=ICONS(d0.rain_mm,d0.prob);
+  $("#wxChip").innerHTML=ICONS(d0.rain_mm,d0.prob)+" <b id=\"wxTemp\">"+Math.round(d0.tmax)+"°C</b>";
+  $("#wxProb").textContent=d0.prob+"%";
+  $("#wxMm").textContent=d0.rain_mm+" mm expected";
+  $("#wxDays").innerHTML=wx.days.map(d=>`<div>${(d.date||"").slice(5)||"—"}<div class="ic">${ICONS(d.rain_mm,d.prob)}</div>${Math.round(d.tmax)}°</div>`).join("");
+  $("#src").textContent=`Weather [${wx.status}] ${wx.source}, fetched ${wx.fetched_at||'n/a'}. Rain trust factor ${r.rain_trust??""}. Humidity 3-day avg ${wx.humidity_3d_avg}%.`+(wx.error?" (network unavailable, using demo numbers)":"");
+}
+
+// ---------- AI Agent Network ----------
+const AGENT_ICON={Weather:"🌦️",Soil:"🌱",Crop:"🌾",Water:"💧",Risk:"⚠️",Simulation:"📈",Decision:"🧠",Feedback:"🔁","Disease / image":"📷",Localization:"🗣️"};
+function renderAgents(r){
+  const rows=r.agents||[];
+  $("#agentStatus").textContent="● All systems online";
+  const chainNames=["Weather","Soil","Crop","Water","Decision"];
+  $("#agentChain").innerHTML=chainNames.map((n,i)=>{
+    const a=rows.find(x=>x.name===n)||rows.find(x=>x.name.startsWith(n));
+    const val=n==="Weather"?`Rain ${r.weather.days[0].rain_mm}mm`:n==="Soil"?`Moist ${Math.round(zones.reduce((s,z)=>s+z.moisture,0)/zones.length)}%`:n==="Crop"?`Stress ${r.scenarios.find(s=>s.key==='smart').risk}`:n==="Water"?`Use ${r.scenarios.find(s=>s.key==='smart').water_used} L`:r.decision.decision;
+    const link = i<chainNames.length-1?'<div class="agent-link"></div>':'';
+    return `<div class="agent-node ${n==='Decision'?'final':''}"><div class="circ">${AGENT_ICON[n]||"🤖"}</div><b>${n==='Decision'?'Decision Engine':n+' Agent'}</b><span class="av">${val}</span></div>${link}`;
+  }).join("");
+  $("#agentsTable").innerHTML=`<table><tbody>${rows.map(a=>`<tr><td><b>${a.name}</b><br><span class="muted small">${a.status}</span></td><td>${a.finding}<br><span class="muted small">${a.source} · ${a.contribution}${a.confidence!=null?" · confidence "+Math.round(a.confidence*100)+"%":""}</span></td></tr>`).join("")}</tbody></table>`;
+}
+
+// ---------- Simulation Lab impact + tabs ----------
+document.querySelectorAll("#simTabs .tab").forEach(t=>t.onclick=()=>{
+  const isActive=t.classList.contains("active");
+  document.querySelectorAll("#simTabs .tab").forEach(x=>x.classList.remove("active"));
+  if(isActive){activePreset=null;}else{t.classList.add("active");activePreset=JSON.parse(t.dataset.x);}
+  go();
+});
+function renderImpact(r){
+  const s=r.scenarios.find(x=>x.key==="smart");
+  $("#impWater").textContent=s.water_required+" L";
+  $("#impStress").textContent=s.risk;
+  $("#impStress").style.color = s.risk=="High"?"var(--alert)":s.risk=="Medium"?"var(--dry)":"var(--green)";
+  const yieldRisk = s.risk=="High"?"+18%":s.risk=="Medium"?"+9%":"+2%";
+  $("#impYield").textContent=yieldRisk;
+}
+
+// ---------- Resource Impact ----------
+function renderResource(r){
+  const a=r.scenarios.find(x=>x.key==="all"), s=r.scenarios.find(x=>x.key==="smart");
+  $("#riWater").textContent=r.water_saved+" L";
+  $("#riCost").textContent="₹"+Math.max(0,a.cost-s.cost);
+  const carbon=(r.water_saved/1000*0.35).toFixed(1);
+  $("#riCarbon").textContent=carbon+" kg";
+  const goals=(r.sdg||[]).map(g=>g.goal.replace("SDG ","")).join(" · ");
+  $("#riSdg").textContent="SDG "+goals;
+}
+
+// ---------- Farm Timeline ----------
+let tlEntries=[];
+function pushTimeline(dotClass,title,sub){
+  tlEntries.unshift({dotClass,title,sub,ts:new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})});
+  tlEntries=tlEntries.slice(0,10);
+  $("#tl").innerHTML=tlEntries.map(e=>`<li><span class="dot" style="background:${e.dotClass}"></span><div class="txt"><b>${e.ts}</b><span>${e.title}</span><br><span>${e.sub}</span></div></li>`).join("");
+}
+
+// ---------- Recommendation card ----------
+function renderReco(r){
+  const D=r.decision;
+  $("#recoTitle").textContent=D.decision;
+  $("#recoBody").textContent=`${D.reason[0]}. ${D.trade_off}.`;
+  $("#recoConf").textContent=Math.round(D.confidence*100)+"%";
+  $("#statusMsg").textContent = D.risk==="High" ? "Your farm needs attention today." : D.risk==="Medium" ? "Your farm is stable, watch a few zones." : "Your farm is looking good today.";
+  $("#dec").innerHTML=`<div class="bigL" style="font-size:22px">${D.decision}</div><ul>${D.reason.map(a=>"<li>"+a+"</li>").join("")}</ul>
+   <p><b>Resource impact:</b> ${D.resource_impact}<br><b>Alternative:</b> ${D.alternative}<br><b>Trade-off:</b> ${D.trade_off}<br><b>Risk:</b> <span class="${D.risk}">${D.risk}</span> · <b>Confidence:</b> ${Math.round(D.confidence*100)}%</p>
+   <p class="muted small"><b>Data used:</b> ${D.data_used.join("; ")}.<br>${D.label}</p>`;
+}
+
+// ---------- Data sources ----------
+const DS_ICON=n=> n.includes("IMD")?"🌦️": n.includes("Open-Meteo")?"🛰️": n.includes("upag")?"🏬": n.includes("data.gov")?"🌾": n.includes("Soil")?"🧪":"📡";
+function renderDataSources(list){
+  const rowHtml=x=>`<div class="ds-row"><div class="ic">${DS_ICON(x.name)}</div><div class="nm"><b>${x.name}</b><span>${x.data}</span></div><span class="badge ${/live|configured/i.test(x.status)?'':'off'}">${x.status}</span></div>`;
+  $("#dsCards").innerHTML=list.slice(0,4).map(rowHtml).join("");
+  $("#ds").innerHTML=list.map(x=>`<tr><td>${x.name}<br><span class="muted small">${x.note}</span></td><td>${x.status}</td><td>${x.official?"Yes":"No"}</td></tr>`).join("");
+}
+api("data-sources").then(renderDataSources).catch(()=>{});
+
+// ---------- main show/go, ports original app.js logic 1:1 plus new widgets ----------
+function show(r){
+  lastRes = {...r, day0: r.scenarios.find(s=>s.key==="smart").day0};
+  renderReco(r);
+  renderWeather(r);
+  renderHealth(r);
+  renderAgents(r);
+  renderImpact(r);
+  renderResource(r);
+  drawZones(); renderZoneDetails();
+  sdgRows(r);
+  $("#sc").innerHTML=r.scenarios.map(s=>`<tr class="${s.key=='smart'?'best':''}"><td>${s.name}</td><td>${s.water_used} L</td><td>Rs ${s.cost}</td><td class="${s.risk}">${s.risk}</td></tr>`).join("");
+  $("#plan").innerHTML=r.plan.map(p=>`<li>${p}</li>`).join("");
+  $("#saved").textContent=r.water_saved+" L";
+  $("#shortfall").textContent=r.shortfall_l?`Your ${r.cap_l} L cap is ${r.shortfall_l} L short of the ${r.water_needed} L the smart plan needs - some zones may still fall short of target.`:"";
+  if(r.market)$("#mkt").textContent=r.market.records?"Mandi: "+r.market.records.map(m=>`${m.market} Rs ${m.modal_price}/q`).join(", "):(r.market.note||"");
+  pushTimeline(r.decision.risk==="High"?"#f0554a":r.decision.risk==="Medium"?"#f0b429":"#22c55e", r.decision.decision, `Crop risk ${r.decision.risk} · rain ${r.weather.days[0].prob}% tomorrow`);
+}
+async function go(){
+  try{
+    const payload=farm({preset:activePreset});
+    show(await api("simulate",payload));
+  }catch(e){$("#src").textContent="Error: "+e.message}
+}
+$("#run").onclick=()=>go();
+
+// ---------- Location: user-selected or browser location ----------
+function renderLocation(){
+  if(!farmLocation)return;
+  $("#districtInput").value=farmLocation.district||"";
+  $("#stateInput").value=farmLocation.state||"";
+  $("#locTxt").textContent=farmLocation.district?(farmLocation.district+(farmLocation.state?", "+farmLocation.state:"")):"My location";
+  $("#locationStatus").textContent=(farmLocation.label||"Location selected")+` · ${Number(farmLocation.lat).toFixed(4)}, ${Number(farmLocation.lon).toFixed(4)}`;
+  localStorage.setItem("farmtwin_location",JSON.stringify(farmLocation));
+}
+async function setDistrictLocation(){
+  const district=$("#districtInput").value.trim(), state=$("#stateInput").value.trim();
+  if(!district){$("#locationStatus").textContent="Enter a district first.";return;}
+  $("#locationStatus").textContent="Finding that district…";
+  try{
+    const r=await api("location/district",{district,state,country:"India"});
+    if(r.error)throw new Error(r.error);
+    farmLocation={lat:r.lat,lon:r.lon,district:r.district,state:r.state,label:r.label};
+    renderLocation();
+    await go();
+  }catch(e){$("#locationStatus").textContent="Location error: "+e.message;}
+}
+$("#setDistrict").onclick=setDistrictLocation;
+$("#useLocation").onclick=()=>{
+  if(!navigator.geolocation){$("#locationStatus").textContent="Browser location is not available. Enter your district instead.";return;}
+  $("#locationStatus").textContent="Waiting for location permission…";
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    try{
+      const r=await api("location/coordinates",{latitude:pos.coords.latitude,longitude:pos.coords.longitude});
+      farmLocation={lat:r.lat,lon:r.lon,district:r.district,state:r.state,label:r.label};
+      renderLocation();
+      await go();
+    }catch(e){
+      farmLocation={lat:pos.coords.latitude,lon:pos.coords.longitude,district:"",state:"",label:"My location"};
+      renderLocation(); await go();
+    }
+  },err=>{$("#locationStatus").textContent="Location permission was not granted. Enter a district manually instead.";},{enableHighAccuracy:true,timeout:10000,maximumAge:300000});
+};
+renderLocation();
+
+// ---------- API configuration status ----------
+api("config").then(r=>{
+  $("#apiStatus").innerHTML=r.sarvam_configured?'<span class="oktxt">● Sarvam API configured — voice features ready.</span>':'<span class="errtxt">● Sarvam API key missing — create .env beside main.py and add SARVAM_API_KEY=your_key.</span>';
+  if(!farmLocation&&r.location){
+    // Ask for browser location on the first visit. If the user denies it, the
+    // District + State controls remain available and can be changed anytime.
+    setTimeout(()=>$("#useLocation").click(),350);
+  }
+}).catch(()=>{});
+
+// ---------- Language: auto-detected, never asked twice ----------
+const LANG_NAMES={en:"English",ta:"தமிழ்",hi:"हिन्दी",te:"తెలుగు",kn:"ಕನ್ನಡ",ml:"മലയാളം",bn:"বাংলা",mr:"मराठी",gu:"ગુજરાતી",pa:"ਪੰਜਾਬੀ",or:"ଓଡ଼ିଆ"};
+const BCP47={en:"en-IN",ta:"ta-IN",hi:"hi-IN",te:"te-IN",kn:"kn-IN",ml:"ml-IN",bn:"bn-IN",mr:"mr-IN",gu:"gu-IN",pa:"pa-IN",or:"od-IN"};
+const TTS_SPEAKER={ta:"ratan",hi:"shubh",en:"shubh",te:"shubh",kn:"shubh",ml:"shubh",bn:"shubh",mr:"shubh",gu:"shubh",pa:"shubh",or:"shubh"};
+let curLang=localStorage.getItem("farmtwin_lang")||(navigator.language||"en").slice(0,2);
+if(!LANG_NAMES[curLang])curLang="en";
+function setLang(code){
+  if(!LANG_NAMES[code])return;
+  curLang=code; localStorage.setItem("farmtwin_lang",code);
+  $("#langBadge").textContent="Auto language: "+LANG_NAMES[code];
+}
+setLang(curLang);
+
+// ---------- Text-to-speech ----------
+let muted=false;
+localStorage.setItem("farmtwin_muted","0");
+let ttsCtx=null;
+function updateMuteBtn(){$("#mute").textContent=muted?"🔇 Answers muted":"🔈 Read answers aloud";$("#mute").setAttribute("aria-pressed",String(!muted))}
+function unlockTts(){
+  try{
+    if(!ttsCtx)ttsCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(ttsCtx.state==="suspended")ttsCtx.resume();
+  }catch(e){}
+}
+document.addEventListener("pointerdown",unlockTts,{passive:true});
+updateMuteBtn();
+$("#mute").onclick=()=>{muted=!muted;localStorage.setItem("farmtwin_muted",muted?"1":"0");updateMuteBtn();if(muted)speechSynthesis.cancel()};
+async function speak(text,langCode){
+  if(muted||!text)return;
+  const code=BCP47[langCode]||"en-IN";
+  try{
+    unlockTts();
+    const r=await api("tts",{text:text.slice(0,2500),language_code:code,speaker:TTS_SPEAKER[langCode]||"shubh"});
+    if(!r.audio)throw new Error(r.error||"No audio returned");
+    if(ttsCtx){
+      if(ttsCtx.state==="suspended")await ttsCtx.resume();
+      const raw=atob(r.audio);
+      const bytes=new Uint8Array(raw.length);
+      for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);
+      const buffer=await ttsCtx.decodeAudioData(bytes.buffer.slice(0));
+      const src=ttsCtx.createBufferSource();
+      src.buffer=buffer;
+      src.connect(ttsCtx.destination);
+      src.start(0);
+      return;
+    }
+    const audio=new Audio(`data:${r.mime||"audio/wav"};base64,${r.audio}`);
+    audio.preload="auto";
+    await audio.play();
+  }catch(e){
+    console.warn("Sarvam TTS playback failed:",e);
+    if("speechSynthesis" in window){
+      speechSynthesis.cancel();
+      const u=new SpeechSynthesisUtterance(text);
+      u.lang=code;
+      speechSynthesis.speak(u);
+    }
+  }
+}
+
+$("#ask").onclick=async()=>{
+  $("#ans").textContent="Agents working...";
+  try{
+    const requestLang=$("#ask").dataset.requestLang||curLang;
+    $("#ask").dataset.requestLang="";
+    const r=await api("ask",{...farm(),question:$("#q").value,lang:requestLang});
+    if(r.detected_lang)setLang(r.detected_lang);
+    $("#ans").textContent=r.answer;
+    $("#trace").innerHTML=r.trace.map(t=>`<li>${t}</li>`).join("");
+    if(r.requested_water_l!=null){ $("#trace").insertAdjacentHTML("beforeend",`<li>Hypothetical inputs: ${r.requested_water_l} L · effective water cap: ${r.cap_l} L</li>`); }
+    $("#sc").innerHTML=r.scenarios.map(s=>`<tr class="${s.key=='smart'?'best':''}"><td>${s.name}</td><td>${s.water_used} L</td><td>Rs ${s.cost}</td><td class="${s.risk}">${s.risk}</td></tr>`).join("");
+    $("#plan").innerHTML=r.plan.map(p=>`<li>${p}</li>`).join("");$("#saved").textContent=r.water_saved+" L";
+    $("#shortfall").textContent=r.shortfall_l?`Your ${r.cap_l} L cap is ${r.shortfall_l} L short of the ${r.water_needed} L the smart plan needs - some zones may still fall short of target.`:"";
+    sdgRows(r);
+    pushTimeline("#38bdf8","Asked FarmTwin", $("#q").value.slice(0,60));
+    speak(r.answer,r.detected_lang||curLang);
+  }catch(e){$("#ans").textContent="Error: "+e.message}};
+
+$("#img").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;$("#vis").textContent="Reading photo...";
+  const b64=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(",")[1]);fr.readAsDataURL(f)});
+  try{const r=await api("vision",{...farm(),image:b64,mime:f.type||"image/jpeg",lang:curLang});
+    const txt=`${r.diagnosis} (confidence ${Math.round((r.confidence||0)*100)}%)\n${r.reasoning||""}\n${r.treat_now?"Treat now.":"No urgent treatment."}`;
+    $("#vis").textContent=txt; speak(`${r.diagnosis}. ${r.reasoning||""}`,curLang);
+    pushTimeline("#8b7bf7","Vision AI check", r.diagnosis);
+  }catch(e){$("#vis").textContent="Error: "+e.message}};
+
+$("#fb").onclick=async()=>{
+  if(!wx)return $("#fbOut").textContent="Run a plan first.";
+  const r=await api("feedback",{predicted_rain_mm:wx.days[0].rain_mm,actual_rain_mm:+$("#act").value,condition:$("#cond").value});
+  $("#fbOut").textContent=`Prediction accuracy ${Math.round(r.accuracy*100)}%, difference ${r.difference} mm. Rain trust factor now ${r.rain_trust}`;
+  pushTimeline("#f0b429","Feedback logged", `Accuracy ${Math.round(r.accuracy*100)}%`);
+};
+
+// ---------- Speech-to-text: Sarvam Saaras ----------
+let recorder=null, recordedChunks=[], micStream=null;
+async function startSarvamMic(){
+  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder)throw new Error("Audio recording is not supported in this browser.");
+  micStream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  recordedChunks=[];
+  const mime=MediaRecorder.isTypeSupported("audio/webm;codecs=opus")?"audio/webm;codecs=opus":
+             (MediaRecorder.isTypeSupported("audio/webm")?"audio/webm":"");
+  if(!mime)throw new Error("This browser cannot create a Sarvam-compatible recording. Please use Chrome or Edge.");
+  recorder=new MediaRecorder(micStream,{mimeType:mime});
+  const stopped=new Promise(resolve=>{recorder.onstop=resolve;});
+  recorder.ondataavailable=e=>{if(e.data&&e.data.size>0)recordedChunks.push(e.data)};
+  recorder.onerror=e=>{console.error("MediaRecorder error",e)};
+  recorder.start(250);
+  $("#mic").textContent="⏹️ Stop & understand";
+  await new Promise(resolve=>setTimeout(resolve,0));
+  recorder._finish=async()=>{
+    if(!recorder||recorder.state!=="recording")return;
+    recorder.stop();
+    await stopped;
+    micStream?.getTracks().forEach(t=>t.stop());
+    const blob=new Blob(recordedChunks,{type:mime});
+    try{
+      if(blob.size<1024)throw new Error("Recording is empty or too short. Hold Speak, talk for a moment, then stop.");
+      const b64=await new Promise((resolve,reject)=>{
+        const fr=new FileReader();
+        fr.onload=()=>resolve(fr.result.split(",")[1]);
+        fr.onerror=()=>reject(new Error("Could not read the recording."));
+        fr.readAsDataURL(blob);
+      });
+      // IMPORTANT: never force STT to the previous language. Sarvam must auto-detect
+      // the language of THIS recording, otherwise speaking English after Tamil (or
+      // Hindi after English) can be transcribed in the old language.
+      const sttCode="unknown";
+      const r=await api("transcribe",{audio:b64,filename:"recording.webm",mime:mime,language_code:sttCode});
+      if(r.error)throw new Error(r.error);
+      if(!r.transcript)throw new Error("No speech detected. Please speak clearly and try again.");
+      $("#q").value=r.transcript;
+      // Prefer Sarvam's detected language. The backend also returns detected_lang
+      // from the transcript when Sarvam does not provide a language code.
+      const voiceLang=(r.detected_lang||r.language_code||"").toLowerCase().slice(0,2);
+      const finalLang=LANG_NAMES[voiceLang]?voiceLang:(curLang||"en");
+      setLang(finalLang);
+      $("#ask").dataset.requestLang=finalLang;
+      $("#ask").click();
+    }catch(e){
+      console.error(e);
+      $("#ans").textContent="Could not transcribe the recording: "+e.message;
+    }finally{
+      $("#mic").textContent="🎤 Speak";
+      recorder=null;
+      micStream=null;
+    }
+  };
+}
+$("#mic").onclick=async()=>{
+  if(recorder&&recorder.state==="recording"){
+    await recorder._finish?.();
+    return;
+  }
+  try{await startSarvamMic();}
+  catch(e){
+    micStream?.getTracks().forEach(t=>t.stop());
+    recorder=null;micStream=null;
+    alert(e.message+" Please allow microphone access and use Chrome/Edge over localhost.");
+  }
+};
+
+drawZones();
+renderZoneDetails();
+go();
+</script>
+</body>
+</html>
